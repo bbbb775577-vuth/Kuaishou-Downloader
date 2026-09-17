@@ -17,42 +17,44 @@ app.post('/api/download', async (req, res) => {
     }
 
     try {
-        // ជំហានទី១៖ ដោះស្រាយ Link ខ្លី (v.kuaishou.com) ឱ្យទៅជា Link វែង (Full URL) 
         let resolvedUrl = videoUrl;
+
+        // ប្រើប្រាស់ Mobile User-Agent ដើម្បីបន្លំខ្លួនជាទូរស័ព្ទដៃពេលដោះស្រាយ Link ខ្លី
         try {
             const redirectResponse = await axios.get(videoUrl, {
                 maxRedirects: 5,
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
                 }
             });
-            // យក URL ចុងក្រោយបន្ទាប់ពី Redirect រួច
             resolvedUrl = redirectResponse.request.res.responseUrl || videoUrl;
         } catch (err) {
-            console.log('Could not resolve short link, using original:', err.message);
+            console.log('Redirect resolution warning:', err.message);
         }
 
         let downloadUrl = null;
 
-        // ជំហានទី២៖ ប្រើប្រាស់ API ជាមួយ Link វែងដែលបានបំប្លែងរួច
+        // ហៅ API ទី១ (Tikwm)
         try {
-            const apiRes = await axios.get(`https://deliriussapi-oficial.vercel.app/download/kuaishou?url=${encodeURIComponent(resolvedUrl)}`);
-            if (apiRes.data && apiRes.data.status && apiRes.data.data.url) {
-                downloadUrl = apiRes.data.data.url;
+            const apiRes = await axios.get(`https://tikwm.com/api/?url=${encodeURIComponent(resolvedUrl)}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+            if (apiRes.data && apiRes.data.code === 0 && apiRes.data.data.play) {
+                downloadUrl = apiRes.data.data.play;
             }
         } catch (err) {
-            console.log('API failed, trying alternative endpoint...');
+            console.log('API 1 failed.');
         }
 
-        // វិធីសាស្ត្រสำรอง (Fallback API ផ្សេងទៀត)
+        // ហៅ API ទី២ (Deliriuss API ជា Fallback)
         if (!downloadUrl) {
             try {
-                const apiRes2 = await axios.get(`https://tikwm.com/api/?url=${encodeURIComponent(resolvedUrl)}`);
-                if (apiRes2.data && apiRes2.data.code === 0 && apiRes2.data.data.play) {
-                    downloadUrl = apiRes2.data.data.play;
+                const apiRes2 = await axios.get(`https://deliriussapi-oficial.vercel.app/download/kuaishou?url=${encodeURIComponent(resolvedUrl)}`);
+                if (apiRes2.data && apiRes2.data.status && apiRes2.data.data.url) {
+                    downloadUrl = apiRes2.data.data.url;
                 }
             } catch (err) {
-                console.log('Fallback API also failed.');
+                console.log('API 2 failed.');
             }
         }
 
@@ -64,7 +66,7 @@ app.post('/api/download', async (req, res) => {
         } else {
             return res.json({ 
                 success: false, 
-                message: 'មិនអាចទាញយកវីដេអូនេះបានទេ។ Link នេះអាចជាវីដេអូ riêng tư (Private) ឬមិនមានទិន្នន័យ។' 
+                message: 'មិនអាចទាញយកវីដេអូនេះបានទេ។ សូមពិនិត្យមើល Link ឡើងវិញ។' 
             });
         }
 
