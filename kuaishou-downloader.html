@@ -39,7 +39,7 @@
         resultDiv.innerHTML = "កំពុងដំណើរការ... សូមរង់ចាំបន្តិច!";
 
         try {
-            const response = await fetch('/api/download', {
+            const response = await fetch('https://kuaishou-downloader-sw5v.onrender.com/api/download', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: link })
