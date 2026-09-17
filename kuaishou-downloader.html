@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuaishou Video Downloader</title>
+    <style>
+        body { font-family: 'Khmer OS Siemreap', sans-serif; background-color: #f4f7f6; text-align: center; padding: 50px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+        input[type="text"] { width: 80%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { padding: 12px 20px; font-size: 16px; background-color: #ff5722; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #e64a19; }
+        #result { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ទាញយកវីដេអូ Kuaishou</h2>
+    <p>សូម Copy Link វីដេអូ Kuaishou មក Paste ទីនេះ៖</p>
+    
+    <input type="text" id="videoLink" placeholder="Paste Kuaishou link here...">
+    <br>
+    <button onclick="downloadVideo()">Download</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    async function downloadVideo() {
+        const link = document.getElementById('videoLink').value;
+        const resultDiv = document.getElementById('result');
+        
+        if (!link) {
+            alert('សូមបញ្ចូល Link ជាមុនសិន!');
+            return;
+        }
+
+        resultDiv.innerHTML = "កំពុងដំណើរការ... សូមរង់ចាំបន្តិច!";
+
+        try {
+            const response = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: link })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                resultDiv.innerHTML = `<a href="${data.downloadUrl}" target="_blank" download><button style="background-color: #4CAF50;">ចុចទីនេះដើម្បីទាញយកវីដេអូ</button></a>`;
+            } else {
+                resultDiv.innerHTML = `<p style="color: red;">បរាជ័យ៖ ${data.message}</p>`;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `<p style="color: red;">មានបញ្តហាកើតឡើង សូមព្យាយាមម្តងទៀត។</p>`;
+        }
+    }
+</script>
+
+</body>
+</html>
