@@ -17,38 +17,41 @@ app.post('/api/download', async (req, res) => {
     }
 
     try {
-        // ប្រើប្រាស់ Public API សម្រាប់ដកស្រង់ទិន្នន័យវីដេអូ Kuaishou
-        // ទីនេះយើងប្រើប្រាស់ Endpoint សម្រាប់ fetch ទិន្នន័យតាមរយៈ API ក្រៅឃ្លាដែលគាំទ្រស្រាប់
-        const apiUrl = `https://api.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}`; 
-        // (ចំណាំ៖ TikWM API ក៏អាចគាំទ្រការទាញយកពីវេបសាយខ្លះ ឬយើងអាចប្រើប្រាស់ API សម្រាប់ Kuaishou ដោយផ្ទាល់)
+        let downloadUrl = null;
 
-        // ឬប្រើប្រាស់ Kuaishou API ដោយផ្ទាល់តាមរយៈ RapidAPI ឬ Public Endpoints
-        // ខាងក្រោមនេះជាកូដសំណើទាញយកតាមរយៈ API ផ្ទាល់ខ្លួនដែលងាយស្រួល៖
-        
-        const response = await axios.post('https://www.kuaishou.com/graphql', {
-            // កូដ GraphQL របស់ Kuaishou ឬប្រើប្រាស់บริการ API ជំនួស
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
+        // វិធីសាស្ត្រទី១៖ ប្រើប្រាស់ Public Downloader API ជំនួស
+        try {
+            const response1 = await axios.get(`https://tikwm.com/api/?url=${encodeURIComponent(videoUrl)}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+            if (response1.data && response1.data.code === 0 && response1.data.data.play) {
+                downloadUrl = response1.data.data.play;
             }
-        });
+        } catch (err) {
+            console.log('API 1 failed, trying fallback...');
+        }
 
-        // ដើម្បីធានាថាវាដំណើរការបានស្រួល ១០០ប៊ឺរហ្វិច (100%) ជាមួយ API ឥតគិតថ្លៃដែលស្ថិតស្ថេរ៖
-        // យើងអាចប្រើប្រាស់ Free Video Downloader API ជំនួសវិញដូចខាងក្រោម៖
-        
-        const apiResponse = await axios.get(`https://apis.davidcyriltech.my.id/download/kuaishou?url=${encodeURIComponent(videoUrl)}`);
-        
-        if (apiResponse.data && apiResponse.data.success) {
+        // វិធីសាស្ត្រទី២ (Fallback): បើ API ទី១ មិនចេញ ប្រើប្រាស់ Endpoint ផ្សេងទៀត
+        if (!downloadUrl) {
+            try {
+                const response2 = await axios.get(`https://deliriussapi-oficial.vercel.app/download/kuaishou?url=${encodeURIComponent(videoUrl)}`);
+                if (response2.data && response2.data.status && response2.data.data.url) {
+                    downloadUrl = response2.data.data.url;
+                }
+            } catch (err) {
+                console.log('API 2 failed as well.');
+            }
+        }
+
+        if (downloadUrl) {
             return res.json({
                 success: true,
-                downloadUrl: apiResponse.data.downloadUrl || apiResponse.data.video
+                downloadUrl: downloadUrl
             });
         } else {
-            // វិធីសាស្ត្រสำรอง (Fallback method) បើ API ខាងលើរអាក់រអួល
-            return res.json({
-                success: false,
-                message: 'មិនអាចទាញយកវីដេអូនេះបានទេ (សូមពិនិត្យមើល Link ម្តងទៀត)'
+            return res.json({ 
+                success: false, 
+                message: 'មិនអាចទាញយកវីដេអូនេះបានទេ (សូមពិនិត្យមើល Link ឬព្យាយាមម្តងទៀត)' 
             });
         }
 
